@@ -40,7 +40,7 @@ def pointer_type(ty):
     ty = ty.get_pointee()
     if ty.kind == TypeKind.UNEXPOSED or ty.kind == TypeKind.RECORD:
         if not type(ty.get_declaration().spelling) is type(None):
-            name =  ty.get_declaration().spelling + " "
+            name =  ty.get_declaration().spelling
         else:
             return "functionalpointer",type_resolve(ty.get_result())
     elif ty.kind == TypeKind.TYPEDEF or  ty.kind == TypeKind.POINTER:
@@ -50,7 +50,7 @@ def pointer_type(ty):
     else:
         name = typeconv[ty.kind]
     if name == None:
-        name = "void "
+        name = "void"
     return name + "*"
 
 def type_resolve(ty):
@@ -76,13 +76,14 @@ def solve_funcpointer(node):
     return name
 
 def visit_node(node, indent=0):
-    if node.kind.name == 'STRUCT_DECL' and not str(node.location.file).startswith('None') and not node.displayname in structenv:
+    if node.kind.name == 'STRUCT_DECL' and not str(node.location.file).startswith('None') and not node.displayname in structenv:# and not str(node.location.file).startswith('/usr'):
         structenv[node.displayname] = 1
         analyze_struct(node)
-    elif node.kind.name == 'UNION_DECL' and not str(node.location.file).startswith('None') and not node.displayname in structenv and node.displayname != "":
+    elif node.kind.name == 'UNION_DECL' and not str(node.location.file).startswith('None') and not node.displayname in structenv and node.displayname != "":# and not str(node.location.file).startswith('/usr'):
         structenv[node.displayname] = 1
         analyze_struct(node)
-    elif node.kind.name == 'FUNCTION_DECL':
+    elif node.kind.name == 'FUNCTION_DECL':# and not str(node.location.file).startswith('/usr'):
+
         analyze_function(node)
     else:
         for c in node.get_children():
@@ -127,6 +128,6 @@ index = Index.create()
 tree = index.parse(sys.argv[1])
 visit_node(tree.cursor)
 print "----------------- Struct Decl ----------------------"
-pprint(struct_decl_list)
+pprint(struct_decl_list) #dump
 print "----------------- Function Decl ----------------------"
 pprint(func_decl_list)
