@@ -1,5 +1,4 @@
 import sys
-import re
 from clang.cindex import *
 from pprint import pprint
 
@@ -47,6 +46,8 @@ def pointer_type(ty):
         name = type_resolve(ty)
     elif ty.kind == TypeKind.FUNCTIONPROTO:
         return "functionalpointer",type_resolve(ty.get_result())
+    elif ty.kind == TypeKind.CONSTANTARRAY:
+        return "[" + type_resolve(ty.get_array_element_type())
     else:
         name = typeconv[ty.kind]
     if name == None:
@@ -60,6 +61,8 @@ def type_resolve(ty):
     elif ty.kind == TypeKind.RECORD:
         name = ty.get_declaration().spelling
         return name
+    elif ty.kind == TypeKind.CONSTANTARRAY:
+        return "[" + type_resolve(ty.get_array_element_type())
     return typeconv[ty.kind]
 
 def solve_pointer(ty,node):
@@ -117,11 +120,10 @@ def analyze_struct(node, indent=0):
 def analyze_function(node, indent=0):
     params = []
     ret = get_member(node)
-    funcname = re.match(r'^[0-9a-zA-Z_]+',node.displayname).group(0)
     for child in node.get_children():
         if child.kind.name == 'PARM_DECL':
             params.append((get_member(child), child.displayname))
-    func_decl_list.append([ret,funcname,params])
+    func_decl_list.append([ret,node.spelling,params])
 
 
 index = Index.create()

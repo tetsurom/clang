@@ -2,7 +2,7 @@ import sys
 import clang.cindex
 
 def visit_node(node, indent=0):
-	print '%s%s : %s' % ('  ' * indent, node.kind.name, node.spelling)
+	print '%s%s : %s\t%s' % ('  ' * indent, node.kind.name, node.spelling,node.displayname)
 	if node.spelling is "f":
 		print node.type.kind.name
 	for c in node.get_children():
