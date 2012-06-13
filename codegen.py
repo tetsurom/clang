@@ -59,7 +59,7 @@ def bind_preface():
 
 #define Int_to(T, a)      ((T)a.ivalue)
 #define String_to(T, a)   ((T)S_text(a.s))
-#define Float_to(T, a)             ((T)a.fvalue)
+#define Float_to(T, a)    ((T)a.fvalue)
 
 
 """
