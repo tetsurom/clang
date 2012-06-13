@@ -46,12 +46,12 @@ def pointer_type(ty):
     elif ty.kind == TypeKind.TYPEDEF or  ty.kind == TypeKind.POINTER:
         name = type_resolve(ty)
     elif ty.kind == TypeKind.FUNCTIONPROTO:
-        return "function" #TODO
+        return "functionalpointer",type_resolve(ty.get_result())
     else:
         name = typeconv[ty.kind]
     if name == None:
         name = "void"
-    return name + "*"
+    return "*" + name
 
 def type_resolve(ty):
     ty = real_type(ty)
@@ -96,7 +96,7 @@ def get_member(node):
     elif ty.kind == TypeKind.CONSTANTARRAY:
         return "[" + type_resolve(ty.get_array_element_type())
     elif ty.kind == TypeKind.FUNCTIONPROTO:
-        return type_resolve(ty.get_result())
+        return solve_pointer(ty.get_result(),node)
     elif ty.kind != None and ty.kind != TypeKind.RECORD:
         return typeconv[ty.kind]
     else:
@@ -117,7 +117,7 @@ def analyze_struct(node, indent=0):
 def analyze_function(node, indent=0):
     params = []
     ret = get_member(node)
-    funcname = re.match(r'(.*)\(',node.displayname).group(1)
+    funcname = re.match(r'^[0-9a-zA-Z_]+',node.displayname).group(0)
     for child in node.get_children():
         if child.kind.name == 'PARM_DECL':
             params.append((get_member(child), child.displayname))
