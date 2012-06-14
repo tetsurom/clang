@@ -1,3 +1,4 @@
+import os
 import sys
 import types
 from pprint import pprint
@@ -123,6 +124,8 @@ class CodeGen:
 #define _Im       kMethod_Immutable
 #define _F(F)     (intptr_t)(F)
 #define TY_$(CN)  (c$(CN)->cid)
+
+
 """
 
     def args2csv(self, args, flag):
@@ -241,7 +244,7 @@ static kbool_t $(CN)_setupKonohaSpace(CTX, kKonohaSpace *ks, kline_t pline)
 """
         return ret
 
-    def c_source_templete(self):
+    def c_source_template(self):
         ret = """
 /****************************************************************************
  * Copyright (c) 2012, the Konoha project authors. All rights reserved.
@@ -286,6 +289,29 @@ KDEFINE_PACKAGE* $(CN)_init(void)
 """
         return ret
 
+    def cmake_source_template(self):
+        ret = """
+cmake_minimum_required(VERSION 2.6)
+set(PACKAGE_SOURCE_CODE $(CN)_glue.c)
+set(PACKAGE_SCRIPT_CODE $(CN)_glue.k)
+add_konoha_package(konoha.$(CN))
+"""
+        return ret
+
+    def bind_output(self, h_source, c_source, cmake_source):
+        package_dir = "konoha." + self.class_name
+        if not os.path.exists(package_dir):
+            os.mkdir(package_dir)
+        f = open(package_dir + "/" + self.class_name + "_glue.h", "w")
+        f.write(h_source)
+        f.close()
+        f = open(package_dir + "/" + self.class_name + "_glue.c", "w")
+        f.write(c_source)
+        f.close()
+        f = open(package_dir + "/CMakeLists.txt", "w")
+        f.write(cmake_source)
+        f.close()
+
     def codegen(self, func_decl_list):
         DBG_P("codegen")
         DBG_PP(func_decl_list)
@@ -299,12 +325,10 @@ KDEFINE_PACKAGE* $(CN)_init(void)
         h_source += self.setup_konohaspace_gen(func_decl_list)
         h_source = h_source.replace("$(CN)", self.class_name)
 
-        c_source = self.c_source_templete()
+        c_source = self.c_source_template()
         c_source = c_source.replace("$(CN)", self.class_name)
 
-        f = open("$(CN)_glue.h".replace("$(CN)", self.class_name), "w")
-        f.write(h_source)
-        f.close()
-        f = open("$(CN)_glue.c".replace("$(CN)", self.class_name), "w")
-        f.write(c_source)
-        f.close()
+        cmake_source = self.cmake_source_template()
+        cmake_source = cmake_source.replace("$(CN)", self.class_name)
+
+        self.bind_output(h_source, c_source, cmake_source)
