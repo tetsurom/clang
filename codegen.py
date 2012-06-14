@@ -2,21 +2,28 @@ import sys
 import types
 from pprint import pprint
 
-debug_mode = 1
+debug_mode = 0
 
 if not debug_mode == 0:
     def DBG_P(str):
         print str
         return
+    def DBG_PP(list):
+        pprint(list)
+        return
 else:
     def DBG_P(str):
         return
+    def DBG_PP(str):
+        return
+
 
 # func_decl_list = [["void", "func1", [("int", "i")]],
 #                   ["int", "func2", [("char", "j"), ("long", "k")]]]
 
 class CodeGen:
-    def __init__(self):
+    def __init__(self, class_name):
+        self.class_name = class_name
         self.args_pattern_list = {
             "void"       : "",
             "bool"       : "$(Tabs)$(AT) $(AN) = Int_to($(AT), sfp[$(SN)]);\n",
@@ -110,7 +117,12 @@ class CodeGen:
 #define Float_to(T, a)    ((T)a.fvalue)
 #define RawPtr_to(T, a)   ((T)a.rawptr)
 
-
+#define _Public   kMethod_Public
+#define _Const    kMethod_Const
+#define _Coercion kMethod_Coercion
+#define _Im       kMethod_Immutable
+#define _F(F)     (intptr_t)(F)
+#define TY_$(CN)  (c$(CN)->cid)
 """
 
     def args2csv(self, args, flag):
@@ -119,7 +131,7 @@ class CodeGen:
         elif flag == "type":
             flag = 0
         else:
-            print "args2csv:error!!"
+            DBG_P("args2csv:error!!")
             return ""
         ret = ""
         lsize = len(args)
@@ -142,7 +154,6 @@ class CodeGen:
         ret += self.ret_gen(return_type)
         ret += "}\n"
         ret = ret.replace("$(Tabs)", "\t")
-        ret = ret.replace("$(CN)", "CLASSNAME") #FIX ME!!
         ret = ret.replace("$(FN)", func_name)
         ret = ret.replace("$(RT)", return_type)
         ret = ret.replace("$(ArgNames)", self.args2csv(args, "name"))
@@ -163,7 +174,7 @@ class CodeGen:
             return "TY_FUNC" # TODO
 
     def method_data_gen(self, func_decl):
-        ret = "$(Tabs)_Public, _F($(CN)_$(FN), $(TY_RT), $(TY_CN), MN_(\"$(FN)\"),"
+        ret = "$(Tabs)_Public, _F($(CN)_$(FN)), $(TY_RT), $(TY_CN), MN_(\"$(FN)\"),"
         return_type = func_decl[0]
         func_name = func_decl[1]
         args = func_decl[2]
@@ -172,8 +183,8 @@ class CodeGen:
             ret += self.TY_(args[i][0]) + ", "
             ret += "FN_arg" + str(i) + ", "
         ret += "\n"
-        ret = ret.replace("$(CN)", "CLASSNAME") #FIX ME!!
         ret = ret.replace("$(FN)", func_name)
+        ret = ret.replace("$(TY_CN)", self.TY_(self.class_name))
         ret = ret.replace("$(TY_RT)", self.TY_(return_type))
         ret = ret.replace("$(Tabs)", "\t\t")
         return ret
@@ -199,15 +210,101 @@ statickbool_t $(CN)_initPackage(CTX, kKonohaSpace *ks, int argc, const char**arg
 	};
 	kKonohaSpace_loadMethodData(ks, MethodData);
 	return true;
+}
+"""
+        return ret
+
+    def setup_package_gen(self, func_decl_list):
+        ret = """
+static kbool_t $(CN)_setupPackage(CTX, kKonohaSpace *ks, kline_t pline)
+{
+	return true;
+}
+"""
+        return ret
+
+    def init_konohaspce_gen(self, func_decl_list):
+        ret = """
+static kbool_t $(CN)_initKonohaSpace(CTX,  kKonohaSpace *ks, kline_t pline)
+{
+	return true;
+}
+"""
+        return ret
+
+    def setup_konohaspace_gen(self, func_decl_list):
+        ret = """
+static kbool_t $(CN)_setupKonohaSpace(CTX, kKonohaSpace *ks, kline_t pline)
+{
+	return true;
+}
+"""
+        return ret
+
+    def c_source_templete(self):
+        ret = """
+/****************************************************************************
+ * Copyright (c) 2012, the Konoha project authors. All rights reserved.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *  * Redistributions of source code must retain the above copyright notice,
+ *    this list of conditions and the following disclaimer.
+ *  * Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ ***************************************************************************/
+
+#include<konoha2/konoha2.h>
+#include<konoha2/sugar.h>
+
+#include"$(CN)_glue.h"
+
+KDEFINE_PACKAGE* $(CN)_init(void)
+{
+	static KDEFINE_PACKAGE d = {
+		KPACKNAME("$(CN)", "1.0"),
+		.initPackage = $(CN)_initPackage,
+		.setupPackage = $(CN)_setupPackage,
+		.initKonohaSpace = $(CN)_initKonohaSpace,
+		.setupKonohaSpace = $(CN)_setupKonohaSpace,
+	};
+	return &d;
+}
 """
         return ret
 
     def codegen(self, func_decl_list):
         DBG_P("codegen")
-        pprint(func_decl_list)
-        ret = ""
-        ret += self.bind_preface()
+        DBG_PP(func_decl_list)
+        h_source = ""
+        h_source += self.bind_preface()
         for func_decl in func_decl_list:
-            ret += self.func_bind_gen(func_decl)
-        ret += self.init_package_gen(func_decl_list)
-        print ret
+            h_source += self.func_bind_gen(func_decl)
+        h_source += self.init_package_gen(func_decl_list)
+        h_source += self.setup_package_gen(func_decl_list)
+        h_source += self.init_konohaspce_gen(func_decl_list)
+        h_source += self.setup_konohaspace_gen(func_decl_list)
+        h_source = h_source.replace("$(CN)", self.class_name)
+
+        c_source = self.c_source_templete()
+        c_source = c_source.replace("$(CN)", self.class_name)
+
+        f = open("$(CN)_glue.h".replace("$(CN)", self.class_name), "w")
+        f.write(h_source)
+        f.close()
+        f = open("$(CN)_glue.c".replace("$(CN)", self.class_name), "w")
+        f.write(c_source)
+        f.close()
