@@ -6,6 +6,9 @@ class Bind:
     """ Bind tool for Konoha powered by clang.cindex . """
 
     def __init__(self,filename):
+        """
+        filename is a file you want to analyze.
+        """
         self.filename = filename
         self.typeconv = {
             TypeKind.VOID      : "void",
@@ -37,6 +40,9 @@ class Bind:
 
 
     def start(self):
+        """
+        Start analyzing.it returns analyzed functions list.
+        """
         index = Index.create()
         tree = index.parse(self.filename)
         self.visit_node(tree.cursor)
@@ -139,7 +145,3 @@ class Bind:
                 params.append((self.get_member(child), child.displayname))
         self.func_decl_list.append([ret,node.spelling,params])
 
-## Use this Class##
-
-#bind = Bind(sys.argv[1])
-#pprint(bind.start())
