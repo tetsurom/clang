@@ -36,7 +36,7 @@ class bind:
             TypeKind.DOUBLE     : "double",
             TypeKind.LONGDOUBLE : "long double",
         }
-        self.const_decl_list = []
+        self.const_decl_list = {}
         self.func_decl_list = []
         self.bind_info = {}
 
@@ -53,6 +53,7 @@ class bind:
     def convert(self):
         self.bind_info["include_files"] = sys.argv[1:]
         self.bind_info["methods"] = {}
+        self.bind_info["constant"] = self.const_decl_list
         for i in self.func_decl_list:
             self.bind_info["methods"][i[1]] = {
                 "func_name":i[1],
@@ -61,13 +62,18 @@ class bind:
                 "arg_names":self.arg_names(i[2])
             }
 
-    def make_ret_type(self,args,ret):
-        return  ",".join([x[0] for x in args])+ "->" + ret
+    def make_ret_type(self,args,name,ret):
+        return  {
+                    "func_name":name,
+                    "return_value_type":self.return_value_type(ret),
+                    "arg_types":self.arg_types(args),
+                    "arg_names":self.arg_names(args)
+                }
 
     def return_value_type(self,ret):
         if type(ret) == str:
             return ret
-        return self.make_ret_type(ret[1][2],ret[1][0])
+        return self.make_ret_type(ret[1][2],ret[1][1],ret[1][0])
 
     def arg_types(self,list):
         ret = []
@@ -75,7 +81,7 @@ class bind:
             if i[0] != "-functionproto":
                 ret.append(i[0])
             else:
-                ret.append(self.make_ret_type(i[1][2],i[1][0]))
+                ret.append(self.make_ret_type(i[1][2],i[1][1],i[1][0]))
         return ret
 
     def arg_names(self,list):
@@ -151,6 +157,9 @@ class bind:
     def visit_node(self,node):
         if node.kind.name == 'FUNCTION_DECL':# and not str(node.location.file).startswith('/usr'):
             self.analyze_function(node)
+        elif node.kind.name == 'ENUM_DECL':
+            for c in node.get_children():
+                self.const_decl_list[c.spelling] = c.enum_value
         else:
             for c in node.get_children():
                 self.visit_node(c)

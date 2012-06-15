@@ -1,4 +1,3 @@
-#include <stdio.h>
 
 struct x;
 typedef struct x X;
