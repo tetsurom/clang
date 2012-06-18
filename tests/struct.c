@@ -12,9 +12,10 @@ struct S {
     size_t **k;
     union {
         int j;
-        union n{
-            short l;
-            unsigned short m;
-        };
+        char l;
+//        union n{
+//            short l;
+//            unsigned short m;
+//        };
     };
 };

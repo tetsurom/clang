@@ -37,28 +37,21 @@ class dumpstruct:
             TypeKind.LONGDOUBLE : "long double",
         }
         self.struct_decl_list = []
-        self.struct_info = {}
-
+        self.type_map = {}
     def start(self):
         """
-        Start analyzing.it returns analyzed functions list.
+        Start analyzing.it returns analyzed struct list.
         """
         index = Index.create()
         tree = index.parse(self.filename)
         self.visit_node(tree.cursor)
         self.convert()
-        return self.struct_decl_list
+        return self.type_map
 
     def convert(self):
-        self.struct_info["include_files"] = sys.argv[1:]
-        self.struct_info["struct"] = {}
         for i in self.struct_decl_list:
-            self.struct_info["struct"][i[0]] = {
-                "struct_name":i[0],
-                "member_types":self.arg_types(i[1]),
-                "member_names":self.arg_names(i[1])
-            }
-
+            self.type_map[i[0]] = i[1]
+    """
     def make_ret_type(self,args,name,ret):
         return  {
                     "func_name":name,
@@ -66,30 +59,51 @@ class dumpstruct:
                     "arg_types":self.arg_types(args),
                     "arg_names":self.arg_names(args)
                 }
+    def make_union_type(self,args):
+        return { "union" : {
+                    "arg_types" : self.arg_types(args),
+                    "arg_names" : self.arg_names(args)
+               }}
 
     def return_value_type(self,ret):
         if type(ret) == str:
             return ret
         return self.make_ret_type(ret[1][2],ret[1][1],ret[1][0])
 
+    def make_struct_type(self,struct_type,struct_name,member):
+        return { struct_type : { "struct_name":struct_type,
+                                 "member_types":self.arg_types(member),
+                                 "member_names":self.arg_names(member)
+        }}
+
     def arg_types(self,list):
         ret = []
         for i in list:
-            if i[0] != "-functionproto":
-                ret.append(i[0])
-            else:
+            if i[0] == "-functionproto":
                 ret.append(self.make_ret_type(i[1][2],i[1][1],i[1][0]))
+            elif i[0] == "-union":
+                ret.append(self.make_union_type(i[1]))
+            elif i[0] == "-struct":
+                ret.append(self.make_struct_type(i[1],i[2],i[3]))
+            elif type(i[0]) == type([]):
+                ret.append(self.make_struct_type(i[0][1],i[0][2],i[0][3]))
+            else:
+                ret.append(i[0])
         return ret
 
     def arg_names(self,list):
         ret = []
         for i in list:
-            if i[0] != "-functionproto":
-                ret.append(i[1])
-            else:
+            if i[0] == "-functionproto":
                 ret.append(i[1][1])
+            elif i[0] == "-union":
+                ret.append('union')
+            elif i[0] == "-struct":
+                ret.append(i[2])
+            else:
+                ret.append(i[1])
         return ret
-
+    """
     def real_type(self,ty):
         if ty.kind == TypeKind.TYPEDEF:
             ty = ty.get_canonical()
@@ -117,8 +131,28 @@ class dumpstruct:
     def uniondecl(self,ty,node):
         mem = []
         for c in node.get_children():
-            mem.append((self.get_member(c.type,c),c.displayname))
+            if c.kind.name == 'FIELD_DECL':
+                mem.append((self.get_member(c.type,c),c.displayname))
         return ("-union", mem)
+
+    def struct_ref_check(self,name,node):
+        child =  list(node.get_children())
+        if child.__len__() == 0:
+            return name
+        child = child[0]
+        if child.kind.name == "TYPE_REF":
+            return name
+        else:
+            params = []
+            for c in child.get_children():
+                if c.kind.name == 'FIELD_DECL' or c.kind.name == 'UNION_DECL':
+                    decl = self.get_member(c.type,c)
+                    if type(decl) == str:
+                        params.append((decl, c.displayname))
+                    else:
+                        params.append(decl)
+            return ["-struct",name,node.spelling,params]
+                
 
     def get_member(self,ty,node):
         ty = self.real_type(ty)
@@ -143,7 +177,8 @@ class dumpstruct:
                 return self.uniondecl(ty,node)
             elif type(name) == type(None):
                 return self.functionproto(ty.get_result(),node)
-            else:
+            else: #struct
+                name = self.struct_ref_check(name,node)
                 return name
 
     def analyze_struct(self,node):
@@ -164,6 +199,3 @@ class dumpstruct:
             for c in node.get_children():
                 self.visit_node(c)
 
-
-b = dumpstruct(sys.argv[1])
-pprint(b.start())
