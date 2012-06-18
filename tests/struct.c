@@ -9,6 +9,12 @@ struct S {
     int g[32];
     int h[32][32];
     int *i;
-    int *j;
     size_t **k;
+    union {
+        int j;
+        union n{
+            short l;
+            unsigned short m;
+        };
+    };
 };
