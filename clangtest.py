@@ -97,14 +97,14 @@ def dumpreftrace(name):
             if objcheck(t[0],"kObjectHeader"):
                 fmt = "KREFTRACE%s(obj->%s)"
                 d = "v"
-                if t[0].endswith("NULL"):
+                if t[1].endswith("NULL"):
                     d = "n"
                 out_list.append("KREFTRACE" + d + "(obj->" + t[1] + ")")
         print "static void %s_reftrace(CTX, kObject *o)\n{\n\tBEGIN_REFTRACE(%d);" % (name,len(out_list))
         print "\t%s obj = (%s)o;" % (tycheck(name),tycheck(name))
         for x in out_list:
             print "\t" + x + ";"
-        print "}"
+        print "\tEND_REFTRACE();\n}"
     except:
         print "error"
 
@@ -137,4 +137,5 @@ for line in iter(sys.stdin.readline, ""):
         else:
             print "Unknown Command."
     print ">>> ",
+
 

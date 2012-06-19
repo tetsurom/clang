@@ -1,5 +1,5 @@
 struct C{
-	int a;
+	int d;
 };
 
 struct B{

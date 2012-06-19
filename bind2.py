@@ -115,7 +115,6 @@ class bind:
                 spel = c.displayname
                 for g in c.get_definition().get_children():
                     name.append((self.get_member(g.type,g),g.displayname))
-        print("aa")
         return ("-functionproto" , [ret,spel,name])
 
     def get_member(self,ty,node):
@@ -130,7 +129,7 @@ class bind:
             return "[" + self.get_member(ty.get_array_element_type(),node)
         elif ty.kind == TypeKind.FUNCTIONPROTO:
             return self.ret_functionproto(ty.get_result(),node)
-        elif ty.kind != None and ty.kind != TypeKind.RECORD and ty.kind != TypeKind.UNEXPOSED:
+        elif ty.kind != None and ty.kind != TypeKind.RECORD and ty.kind != TypeKind.UNEXPOSED and ty.kind != TypeKind.ENUM:
             return self.typeconv[ty.kind]
         else:
             name = ty.get_declaration().spelling
