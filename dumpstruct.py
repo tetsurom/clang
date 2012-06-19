@@ -7,11 +7,12 @@ class dumpstruct:
     Show struct tool for Konoha powered by clang.cindex . 
     """
 
-    def __init__(self,filename):
+    def __init__(self,files ,args = []):
         """
         filename is a file you want to analyze.
         """
-        self.filename = filename
+        self.files = files
+        self.args = args
         self.typeconv = {
             TypeKind.VOID      : "void",
             TypeKind.BOOL      : "bool",
@@ -42,10 +43,13 @@ class dumpstruct:
         """
         Start analyzing.it returns analyzed struct list.
         """
-        index = Index.create()
-        tree = index.parse(self.filename)
-        self.visit_node(tree.cursor)
-        self.convert()
+        for filename in self.files:
+            print filename
+            index = Index.create()
+            tree = index.parse(filename,self.args)
+            self.visit_node(tree.cursor)
+            self.convert()
+            self.struct_decl_list = []
         return self.type_map
 
     def convert(self):
@@ -169,7 +173,7 @@ class dumpstruct:
             return ret
         elif ty.kind == TypeKind.FUNCTIONPROTO:
             return self.ret_functionproto(ty.get_result(),node)
-        elif ty.kind != None and ty.kind != TypeKind.RECORD and ty.kind != TypeKind.UNEXPOSED:
+        elif ty.kind != None and ty.kind != TypeKind.ENUM and ty.kind != TypeKind.RECORD and ty.kind != TypeKind.UNEXPOSED:
             return self.typeconv[ty.kind]
         else:
             name = ty.get_declaration().spelling
@@ -190,7 +194,8 @@ class dumpstruct:
                     params.append((decl, child.displayname))
                 else:
                     params.append(decl)
-        self.struct_decl_list.append([node.spelling,params])
+        if len(params) > 0:
+            self.struct_decl_list.append([node.spelling,params])
 
     def visit_node(self,node):
         if node.kind.name == 'STRUCT_DECL':# and not str(node.location.file).startswith('/usr'):

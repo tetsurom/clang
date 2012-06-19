@@ -23,6 +23,13 @@ typechecker = {
     "double":1,
     "long double":1
 }
+count = 0
+for arg in sys.argv:
+    count += 1
+    if arg == "--args":
+        count -=1
+        break;
+type_map = dumpstruct(sys.argv[1:count],sys.argv[count+1:]).start()
 
 def tycheck(name):
     if name in typechecker:
@@ -59,12 +66,6 @@ def print_function(type_map,route_str):
         p = t[1]
     print "\treturn %s;\n}" % (output_list[-1][1])
 
-
-
-b = dumpstruct(sys.argv[1])
-type_map = b.start()
-
-#for type_name in ["kcontext_t", "_kObject", "ksfp_t"]:
 def dumpstruct(name):
     try:
         print ""
@@ -77,7 +78,15 @@ def dumpstruct(name):
 def dumproute(name):
     print ""
     print_function(type_map,name)
-"""
+
+def objcheck(typename,member_type):
+    typename = typename.lstrip("*")
+    if typename in type_map:
+        for x in type_map[typename]:
+            if x[0] == member_type:
+                return True
+    return False
+
 def dumpreftrace(name):
     try:
         print ""
@@ -85,18 +94,23 @@ def dumpreftrace(name):
         count = 0
         out_list = []
         for t in tdata:
-            if t[0].startswith("_k"):
-                fmt = "KREFTRACE%s(obj->%s)";
+            if objcheck(t[0],"kObjectHeader"):
+                fmt = "KREFTRACE%s(obj->%s)"
                 d = "v"
                 if t[0].endswith("NULL"):
                     d = "n"
-                out_list.append((fmt) % (d,t[1])
-        print "static void %s_reftrace(CTX, kObject *o)\n{\n\tBEGIN_REFTRACE(%d);" % (len(out_list))
-        print "%s obj = )o;" % ()
+                out_list.append("KREFTRACE" + d + "(obj->" + t[1] + ")")
+        print "static void %s_reftrace(CTX, kObject *o)\n{\n\tBEGIN_REFTRACE(%d);" % (name,len(out_list))
+        print "\t%s obj = (%s)o;" % (tycheck(name),tycheck(name))
         for x in out_list:
+            print "\t" + x + ";"
+        print "}"
     except:
         print "error"
-"""
+
+def dumpllvm(name):
+    pass
+
 
 for x in type_map:
     print x
@@ -108,13 +122,19 @@ for line in iter(sys.stdin.readline, ""):
         break
     elif line.startswith("struct("):
         line = line[7:]
-        dumpstruct(line.rstrip("\n)"));
+        dumpstruct(line.rstrip("\n)"))
     elif line.startswith("accessTo("):
         line = line[9:]
-        dumproute(line.rstrip(")\n"));
+        dumproute(line.rstrip(")\n"))
     elif line.startswith("reftrace("):
         line = line[9:]
-        #dumpreftrace(line.rstrip(")\n")
+        dumpreftrace(line.rstrip(")\n"))
+    else:
+        print ""
+        line.rstrip()
+        if line in type_map:
+            dumpllvm(line)
+        else:
+            print "Unknown Command."
     print ">>> ",
-
 
