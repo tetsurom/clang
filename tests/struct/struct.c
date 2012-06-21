@@ -13,9 +13,7 @@ struct S {
     union {
         int j;
         char l;
-//        union n{
-//            short l;
-//            unsigned short m;
-//        };
+        short l;
+        unsigned short m;
     };
 };
