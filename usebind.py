@@ -1,6 +1,6 @@
 import sys
 from pprint import pprint
-from bind import Bind
+from bind2 import bind
 
-b = Bind(sys.argv[1])
+b = bind(sys.argv[1])
 pprint(b.start())

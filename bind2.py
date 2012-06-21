@@ -163,6 +163,3 @@ class bind:
             for c in node.get_children():
                 self.visit_node(c)
 
-
-b = bind(sys.argv[1])
-pprint(b.start())
