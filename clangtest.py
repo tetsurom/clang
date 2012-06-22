@@ -109,7 +109,10 @@ def dumpreftrace(name):
         print "error"
 
 def dumpllvm(name):
-    pass
+    tdata = type_map[name]
+    size = len(tdata)
+    print size
+
 
 
 for x in type_map:
@@ -131,7 +134,7 @@ for line in iter(sys.stdin.readline, ""):
         dumpreftrace(line.rstrip(")\n"))
     else:
         print ""
-        line.rstrip()
+        line =line.rstrip("\n")
         if line in type_map:
             dumpllvm(line)
         else:
