@@ -30,6 +30,7 @@ for arg in sys.argv:
         count -=1
         break;
 type_map = dumpstruct(sys.argv[1:count],sys.argv[count+1:]).start()
+print(type_map)
 
 def tycheck(name):
     if name in typechecker:
@@ -95,7 +96,6 @@ def dumpreftrace(name):
         out_list = []
         for t in tdata:
             if objcheck(t[0],"kObjectHeader"):
-                fmt = "KREFTRACE%s(obj->%s)"
                 d = "v"
                 if t[1].endswith("NULL"):
                     d = "n"

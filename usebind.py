@@ -1,6 +1,7 @@
 import sys
 from pprint import pprint
-from bind2 import bind
+from dumpfunction import dumpfunction
 
-b = bind(sys.argv[1])
-pprint(b.start())
+b = dumpfunction(sys.argv[1:])
+b.start()
+pprint(b.type_map)
