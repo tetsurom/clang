@@ -30,14 +30,12 @@ for arg in sys.argv:
         count -=1
         break;
 type_map = dumpstruct(sys.argv[1:count],sys.argv[count+1:]).start()
-print(type_map)
 
 def tycheck(name):
     if name in typechecker:
         return name + " "
     else:
         return "struct " + name + " *"
-
 
 def print_function(type_map,route_str):
     route_list = route_str.split("->")

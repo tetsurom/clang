@@ -82,6 +82,8 @@ class clanganalyzer:
             return name
         child = child[0]
         if child.kind.name == "TYPE_REF":
+            if name == "":
+                return child.displayname
             return name
         else:
             params = []
@@ -113,12 +115,13 @@ class clanganalyzer:
         elif ty.kind != None and ty.kind != TypeKind.ENUM and ty.kind != TypeKind.RECORD and ty.kind != TypeKind.UNEXPOSED:
             return self.typeconv[ty.kind]
         else:
-            name = ty.get_declaration().spelling
-            if name == "":
+            name = ty.get_declaration().kind.name
+            if name == "UNION_DECL":
                 return self.uniondecl(ty,node)
-            elif type(name) == type(None):
+            elif name == "NO_DECL_FOUND":
                 return self.functionproto(ty.get_result(),node)
             else: #struct
+                name = ty.get_declaration().spelling
                 name = self.struct_ref_check(name,node)
                 return name
 
